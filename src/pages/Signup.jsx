@@ -1,0 +1,216 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Eye, EyeOff, CheckCircle2, Check, X } from 'lucide-react'
+import { signUp, signInWithGoogle } from '../services/auth'
+import Button from '../components/ui/Button'
+import Input from '../components/ui/Input'
+import toast from 'react-hot-toast'
+
+function PasswordStrength({ password }) {
+  const checks = [
+    { label: 'At least 8 characters', pass: password.length >= 8 },
+    { label: 'Uppercase letter', pass: /[A-Z]/.test(password) },
+    { label: 'Lowercase letter', pass: /[a-z]/.test(password) },
+    { label: 'Number', pass: /\d/.test(password) },
+  ]
+  const passed = checks.filter(c => c.pass).length
+  const colors = ['bg-red-400', 'bg-orange-400', 'bg-yellow-400', 'bg-emerald-400']
+  const labels = ['Weak', 'Fair', 'Good', 'Strong']
+
+  if (!password) return null
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex gap-1">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className={`flex-1 h-1 rounded-full transition-all ${i < passed ? colors[passed - 1] : 'bg-slate-200 dark:bg-slate-600'}`} />
+        ))}
+      </div>
+      <p className="text-xs text-slate-500 dark:text-slate-400">
+        Strength: <span className="font-medium">{passed > 0 ? labels[passed - 1] : 'Weak'}</span>
+      </p>
+      <div className="grid grid-cols-2 gap-1">
+        {checks.map(c => (
+          <div key={c.label} className={`flex items-center gap-1.5 text-xs ${c.pass ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+            {c.pass ? <Check size={10} /> : <X size={10} />}
+            {c.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function Signup() {
+  const navigate = useNavigate()
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirm: '', agreed: false })
+  const [showPw, setShowPw] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [loading, setLoading] = useState(false)
+
+  function validate() {
+    const errs = {}
+    if (!form.fullName.trim()) errs.fullName = 'Full name is required'
+    if (!form.email) errs.email = 'Email is required'
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Enter a valid email'
+    if (!form.password) errs.password = 'Password is required'
+    else if (form.password.length < 8) errs.password = 'Password must be at least 8 characters'
+    if (form.password !== form.confirm) errs.confirm = 'Passwords do not match'
+    if (!form.agreed) errs.agreed = 'You must accept the terms'
+    return errs
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    const errs = validate()
+    if (Object.keys(errs).length) { setErrors(errs); return }
+    setLoading(true)
+    try {
+      await signUp(form.email, form.password, form.fullName)
+      toast.success('Account created! Welcome to HabitTracker 🎉')
+      navigate('/dashboard')
+    } catch (err) {
+      const msg = err.message?.includes('already registered')
+        ? 'An account with this email already exists.'
+        : 'Failed to create account. Please try again.'
+      toast.error(msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex">
+      {/* Left panel */}
+      <div className="hidden lg:flex flex-col justify-between w-2/5 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white p-12">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+            <CheckCircle2 size={18} />
+          </div>
+          <span className="font-bold text-lg">HabitTracker</span>
+        </div>
+        <div>
+          <h2 className="text-3xl font-bold mb-4 leading-snug">Start your journey<br />to better habits.</h2>
+          <p className="text-slate-300 text-sm leading-relaxed">
+            Join thousands of people building consistent habits every day. Free forever, cloud-synced.
+          </p>
+        </div>
+        <p className="text-slate-500 text-xs">Small steps. Big goals.</p>
+      </div>
+
+      {/* Right form */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-slate-50 dark:bg-slate-900">
+        <div className="w-full max-w-md">
+          <div className="flex items-center gap-2 mb-8 lg:hidden">
+            <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+              <CheckCircle2 size={18} className="text-white" />
+            </div>
+            <span className="font-bold text-lg text-slate-900 dark:text-white">HabitTracker</span>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-700">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">Create your account</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-7">Start building better habits today.</p>
+
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+              <Input
+                label="Full name"
+                id="fullName"
+                placeholder="Jane Doe"
+                value={form.fullName}
+                onChange={e => setForm(p => ({ ...p, fullName: e.target.value }))}
+                error={errors.fullName}
+                autoComplete="name"
+              />
+              <Input
+                label="Email address"
+                type="email"
+                id="email"
+                placeholder="you@example.com"
+                value={form.email}
+                onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                error={errors.email}
+                autoComplete="email"
+              />
+
+              <div>
+                <div className="relative">
+                  <Input
+                    label="Password"
+                    type={showPw ? 'text' : 'password'}
+                    id="password"
+                    placeholder="Min. 8 characters"
+                    value={form.password}
+                    onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                    error={errors.password}
+                    autoComplete="new-password"
+                    className="pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(v => !v)}
+                    className="absolute right-3 top-[38px] text-slate-400 hover:text-slate-600 p-1"
+                    aria-label="Toggle password visibility"
+                  >
+                    {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+                <PasswordStrength password={form.password} />
+              </div>
+
+              <Input
+                label="Confirm password"
+                type={showPw ? 'text' : 'password'}
+                id="confirm"
+                placeholder="Repeat your password"
+                value={form.confirm}
+                onChange={e => setForm(p => ({ ...p, confirm: e.target.value }))}
+                error={errors.confirm}
+                autoComplete="new-password"
+              />
+
+              <div>
+                <label className="flex items-start gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.agreed}
+                    onChange={e => setForm(p => ({ ...p, agreed: e.target.checked }))}
+                    className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-slate-600 dark:text-slate-400">
+                    I agree to the{' '}
+                    <span className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">Terms of Service</span>
+                    {' '}and{' '}
+                    <span className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">Privacy Policy</span>
+                  </span>
+                </label>
+                {errors.agreed && <p className="text-xs text-red-500 mt-1">{errors.agreed}</p>}
+              </div>
+
+              <Button type="submit" className="w-full" size="lg" loading={loading}>
+                Create Account
+              </Button>
+            </form>
+
+            <div className="relative flex items-center my-5">
+              <div className="flex-1 border-t border-slate-200 dark:border-slate-700" />
+              <span className="px-3 text-xs text-slate-400">OR</span>
+              <div className="flex-1 border-t border-slate-200 dark:border-slate-700" />
+            </div>
+
+            <Button variant="outline" className="w-full" size="lg" onClick={() => signInWithGoogle()}>
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4 h-4" />
+              Continue with Google
+            </Button>
+
+            <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
+              Already have an account?{' '}
+              <Link to="/login" className="text-blue-600 dark:text-blue-400 font-medium hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
