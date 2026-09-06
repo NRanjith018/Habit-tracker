@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, CheckCircle2 } from 'lucide-react'
 import { signIn, signInWithGoogle } from '../services/auth'
+import { isSupabaseConfigured } from '../services/supabase'
+import { DEMO_EMAIL, DEMO_PASSWORD } from '../services/demoData'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import toast from 'react-hot-toast'
@@ -29,7 +31,9 @@ export default function Login() {
     setLoading(true)
     try {
       await signIn(form.email, form.password)
-      navigate('/dashboard')
+      // Force full reload for demo mode so AuthContext re-reads session
+      if (!isSupabaseConfigured) window.location.href = '/dashboard'
+      else navigate('/dashboard')
     } catch (err) {
       const msg = err.message?.includes('Invalid login') || err.message?.includes('credentials')
         ? 'Invalid email or password.'
@@ -162,6 +166,27 @@ export default function Login() {
               />
               Continue with Google
             </Button>
+
+            {!isSupabaseConfigured && (
+              <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mt-4">
+                <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2">🔑 Demo Credentials</p>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-blue-700 dark:text-blue-400">Email:</span>
+                  <code className="bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded text-blue-900 dark:text-blue-200 select-all">{DEMO_EMAIL}</code>
+                </div>
+                <div className="flex items-center justify-between text-xs mt-1">
+                  <span className="text-blue-700 dark:text-blue-400">Password:</span>
+                  <code className="bg-blue-100 dark:bg-blue-900/50 px-2 py-0.5 rounded text-blue-900 dark:text-blue-200 select-all">{DEMO_PASSWORD}</code>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setForm({ email: DEMO_EMAIL, password: DEMO_PASSWORD, remember: true }) }}
+                  className="w-full mt-3 text-xs font-medium text-blue-700 dark:text-blue-300 hover:text-blue-900 dark:hover:text-blue-100 bg-blue-100 dark:bg-blue-900/50 rounded-lg py-1.5 transition-colors"
+                >
+                  Fill Demo Credentials
+                </button>
+              </div>
+            )}
 
             <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-6">
               Don't have an account?{' '}

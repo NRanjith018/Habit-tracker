@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 import { signOut, updatePassword } from '../services/auth'
 import { getHabits } from '../services/habits'
 import { getCompletions } from '../services/completions'
+import { isSupabaseConfigured } from '../services/supabase'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
 import Modal from '../components/ui/Modal'
@@ -35,7 +36,8 @@ export default function Settings() {
     setLogoutLoading(true)
     try {
       await signOut()
-      navigate('/login')
+      if (!isSupabaseConfigured) window.location.href = '/login'
+      else navigate('/login')
     } catch {
       toast.error('Logout failed')
       setLogoutLoading(false)

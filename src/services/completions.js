@@ -1,6 +1,12 @@
-import { supabase } from './supabase'
+import { supabase, isSupabaseConfigured } from './supabase'
+import { getDemoCompletions, upsertDemoCompletion } from './demoData'
 
 export async function getCompletions(userId, startDate, endDate) {
+  if (!isSupabaseConfigured) {
+    return getDemoCompletions().filter(
+      c => c.completion_date >= startDate && c.completion_date <= endDate
+    )
+  }
   const { data, error } = await supabase
     .from('habit_completions')
     .select('*')
@@ -18,6 +24,9 @@ export async function getTodayCompletions(userId) {
 }
 
 export async function upsertCompletion({ habitId, userId, date, completed, progressValue = 0, notes = '' }) {
+  if (!isSupabaseConfigured) {
+    return upsertDemoCompletion({ habitId, date, completed, progressValue })
+  }
   const { data, error } = await supabase
     .from('habit_completions')
     .upsert(
@@ -38,6 +47,7 @@ export async function upsertCompletion({ habitId, userId, date, completed, progr
 }
 
 export async function deleteCompletion(id) {
+  if (!isSupabaseConfigured) return
   const { error } = await supabase
     .from('habit_completions')
     .delete()
@@ -46,6 +56,9 @@ export async function deleteCompletion(id) {
 }
 
 export async function getCompletionsForHabit(habitId) {
+  if (!isSupabaseConfigured) {
+    return getDemoCompletions().filter(c => c.habit_id === habitId && c.completed)
+  }
   const { data, error } = await supabase
     .from('habit_completions')
     .select('*')

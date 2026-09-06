@@ -1,6 +1,8 @@
-import { supabase } from './supabase'
+import { supabase, isSupabaseConfigured } from './supabase'
+import { DEMO_PROFILE } from './demoData'
 
 export async function getProfile(userId) {
+  if (!isSupabaseConfigured) return { ...DEMO_PROFILE }
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
@@ -11,6 +13,7 @@ export async function getProfile(userId) {
 }
 
 export async function updateProfile(userId, updates) {
+  if (!isSupabaseConfigured) return { ...DEMO_PROFILE, ...updates }
   const { data, error } = await supabase
     .from('profiles')
     .update(updates)
@@ -22,6 +25,10 @@ export async function updateProfile(userId, updates) {
 }
 
 export async function uploadAvatar(userId, file) {
+  if (!isSupabaseConfigured) {
+    // In demo mode, create a local object URL for preview
+    return URL.createObjectURL(file)
+  }
   const ext = file.name.split('.').pop()
   const path = `${userId}/avatar.${ext}`
 
